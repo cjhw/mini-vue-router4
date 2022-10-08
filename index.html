@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + Vue</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <button onclick="history.push('/')">首页</button>
+    <button onclick="history.push('/about')">关于我</button>
+    <button onclick="history.replace('/xxxxx')">替换</button>
+    <!-- <script type="module" src="/src/main.js"></script> -->
+    <script>
+      function buildState(
+        back,
+        current,
+        forward,
+        replace = false,
+        computedScroll = false
+      ) {
+        return {
+          back,
+          current,
+          forward,
+          replace,
+          scroll: computedScroll
+            ? { left: window.pageXOffset, top: window.pageYOffset }
+            : null,
+          position: window.history.length - 1,
+        }
+      }
+
+      function createCurrentLocation() {
+        const { pathname, search, hash } = window.location
+        return pathname + search + hash
+      }
+
+      function useHistoryStateNavigation() {
+        const currentLocation = {
+          value: createCurrentLocation(),
+        }
+        const historyState = {
+          value: window.history.state,
+        }
+
+        if (!historyState.value) {
+          changeLocation(
+            currentLocation.value,
+            buildState(null, currentLocation.value, null, true),
+            true
+          )
+        }
+
+        function changeLocation(to, state, replace) {
+          window.history[replace ? 'replaceState' : 'pushState'](
+            state,
+            null,
+            to
+          )
+          historyState.value = state
+        }
+
+        function push(to, data) {
+          // 还没跳转 只是更新了状态
+          const currentState = Object.assign({}, historyState.value, {
+            forward: to,
+            scroll: { left: window.pageXOffset, top: window.pageYOffset },
+          })
+
+          // 跳转前我要知道我去哪
+          changeLocation(currentState.current, currentState, true)
+
+          const state = Object.assign(
+            {},
+            buildState(currentLocation.value, to, null),
+            {
+              position: currentState.position + 1,
+            },
+            data
+          )
+
+          changeLocation(to, state, false)
+        }
+
+        function replace(to, data) {
+          const state = Object.assign(
+            {},
+            buildState(
+              historyState.value.back,
+              to,
+              historyState.value.forward,
+              true
+            ),
+            data
+          )
+          changeLocation(to, state, true)
+          currentLocation.value = to
+        }
+
+        return {
+          location: currentLocation,
+          state: historyState,
+          push,
+          replace,
+        }
+      }
+
+      function useHistoryListeners(historyState, currentLocation) {
+        let listeners = []
+        const popStateHandler = ({ state }) => {
+          const to = createCurrentLocation()
+          const from = currentLocation.value
+          const fromState = historyState.value
+
+          currentLocation.value = to
+          historyState.value = state
+
+          let isBack = state.position - fromState.position < 0
+
+          listeners.forEach((listener) => {
+            listener(to, from, { isBack })
+          })
+        }
+        window.addEventListener('popstate', popStateHandler)
+
+        function listen(cb) {
+          listeners.push(cb)
+        }
+
+        return {
+          listen,
+        }
+      }
+
+      function createWebHistory() {
+        const historyNavigation = useHistoryStateNavigation()
+        const historyListeners = useHistoryListeners(
+          historyNavigation.state,
+          historyNavigation.location
+        )
+
+        const routerHistory = Object.assign(
+          {},
+          historyNavigation,
+          historyListeners
+        )
+
+        Object.defineProperty(routerHistory, 'location', {
+          get: () => historyNavigation.location.value,
+        })
+
+        Object.defineProperty(routerHistory, 'state', {
+          get: () => historyNavigation.state.value,
+        })
+
+        return routerHistory
+      }
+
+      const routerHistory = createWebHistory()
+
+      console.log(routerHistory.location)
+      console.log(routerHistory.state)
+
+      routerHistory.listen((to, from, { isBack }) => {
+        console.log(to, from, isBack)
+      })
+    </script>
+  </body>
+</html>
