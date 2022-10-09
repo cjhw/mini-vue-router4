@@ -8,9 +8,9 @@
   </head>
   <body>
     <div id="app"></div>
-    <button onclick="history.push('/')">首页</button>
-    <button onclick="history.push('/about')">关于我</button>
-    <button onclick="history.replace('/xxxxx')">替换</button>
+    <button onclick="routerHistory.push('/')">首页</button>
+    <button onclick="routerHistory.push('/about')">关于我</button>
+    <button onclick="routerHistory.replace('/xxxxx')">替换</button>
     <!-- <script type="module" src="/src/main.js"></script> -->
     <script>
       function buildState(
@@ -32,14 +32,21 @@
         }
       }
 
-      function createCurrentLocation() {
+      function createCurrentLocation(base) {
         const { pathname, search, hash } = window.location
+        const hasPos = base.indexOf('#')
+
+        if (hasPos > -1) {
+          console.log(base.slice(1) || '/')
+          return base.slice(1) || '/'
+        }
+
         return pathname + search + hash
       }
 
-      function useHistoryStateNavigation() {
+      function useHistoryStateNavigation(base) {
         const currentLocation = {
-          value: createCurrentLocation(),
+          value: createCurrentLocation(base),
         }
         const historyState = {
           value: window.history.state,
@@ -54,10 +61,14 @@
         }
 
         function changeLocation(to, state, replace) {
+          const hasPos = base.indexOf('#')
+
+          const url = hasPos > -1 ? base + to : to
+
           window.history[replace ? 'replaceState' : 'pushState'](
             state,
             null,
-            to
+            url
           )
           historyState.value = state
         }
@@ -107,10 +118,10 @@
         }
       }
 
-      function useHistoryListeners(historyState, currentLocation) {
+      function useHistoryListeners(base, historyState, currentLocation) {
         let listeners = []
         const popStateHandler = ({ state }) => {
-          const to = createCurrentLocation()
+          const to = createCurrentLocation(base)
           const from = currentLocation.value
           const fromState = historyState.value
 
@@ -134,9 +145,10 @@
         }
       }
 
-      function createWebHistory() {
-        const historyNavigation = useHistoryStateNavigation()
+      function createWebHistory(base = '') {
+        const historyNavigation = useHistoryStateNavigation(base)
         const historyListeners = useHistoryListeners(
+          base,
           historyNavigation.state,
           historyNavigation.location
         )
@@ -158,7 +170,11 @@
         return routerHistory
       }
 
-      const routerHistory = createWebHistory()
+      function createWebHashHistory() {
+        return createWebHistory('#')
+      }
+
+      const routerHistory = createWebHashHistory()
 
       console.log(routerHistory.location)
       console.log(routerHistory.state)
