@@ -6,10 +6,4 @@
   </div>
 </template>
 
-<script setup>
-import { getCurrentInstance } from 'vue'
-
-const instance = getCurrentInstance()
-
-console.log(instance.$router)
-</script>
+<script setup></script>

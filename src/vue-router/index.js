@@ -1,83 +1,9 @@
 import { createWebHashHistory } from './history/hash'
 import { createWebHistory } from './history/html5'
 import { shallowRef, computed, reactive, unref } from 'vue'
-import { RouterLink } from './route-link'
-
-function normalizedRouteRecord(record) {
-  return {
-    path: record.path,
-    meta: record.meta || {},
-    beforeEnter: record.beforeEnter,
-    name: record.name,
-    components: {
-      default: record.component,
-    },
-    children: record.children || [],
-  }
-}
-
-function createRouteRecordMatcher(record, parent) {
-  const matcher = {
-    path: record.path,
-    record,
-    parent,
-    children: [],
-  }
-
-  if (parent) {
-    parent.children.push(matcher)
-  }
-
-  return matcher
-}
-
-function createRouterMatcher(routes) {
-  const matchers = []
-  function addRoute(route, parent) {
-    let normalizedRecord = normalizedRouteRecord(route)
-
-    if (parent) {
-      normalizedRecord.path = parent.path + normalizedRecord.path
-    }
-
-    const matcher = createRouteRecordMatcher(normalizedRecord, parent)
-
-    if ('children' in normalizedRecord) {
-      let children = normalizedRecord.children
-      for (let i = 0; i < children.length; i++) {
-        addRoute(children[i], matcher)
-      }
-    }
-
-    matchers.push(matcher)
-  }
-
-  routes.forEach((route) => addRoute(route))
-
-  function resolve(location) {
-    const matched = []
-
-    let path = location.path
-    let matcher = matchers.find((m) => m.path === location.path)
-
-    while (matcher) {
-      matched.unshift(matcher.record) // 将用户的原始数据放到matched里
-      matcher = matcher.parent
-    }
-
-    return {
-      path,
-      matched,
-    }
-  }
-
-  console.log(matchers)
-
-  return {
-    resolve,
-    addRoute,
-  }
-}
+import { RouterLink } from './router-link'
+import { RouterView } from './router-view'
+import { createRouterMatcher } from './matcher'
 
 const START_LOCATION_NORMALIZED = {
   path: '/',
@@ -157,12 +83,7 @@ function createRouter(options) {
 
       app.component('RouterLink', RouterLink)
 
-      app.component('RouterView', {
-        setup:
-          (props, { slots }) =>
-          () =>
-            <div></div>,
-      })
+      app.component('RouterView', RouterView)
 
       if (currentRoute.value == START_LOCATION_NORMALIZED) {
         // 初始化，需要经过路由系统进行一次跳转 发生匹配
