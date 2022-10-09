@@ -55,8 +55,8 @@ function guardToPromise(guard, to, from, record) {
   return () =>
     new Promise((resolve, reject) => {
       const next = () => resolve()
-      let guardReturn = guard.call(record, to, from, next)
 
+      let guardReturn = guard.call(record, to, from, next)
       // 不调用next 也会帮你调
       return Promise.resolve(guardReturn).then(next)
     })
@@ -122,7 +122,7 @@ function createRouter(options) {
   }
 
   async function navigate(to, from) {
-    // 进入组件 离开组件 更新组件的钩子
+    // 导航守卫 进入组件 离开组件 更新组件的钩子
     const [leavingRecoards, updatingRecoards, enteringRecoards] =
       extractChangeRecoards(to, from)
 
